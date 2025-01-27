@@ -23,6 +23,8 @@ while True:
 
     results = model(img, stream=True)
 
+    alert_texts = []  # Store all detected violations
+
     for r in results:
         boxes = r.boxes
         for box in boxes:
@@ -34,12 +36,13 @@ while True:
             conf = math.ceil((box.conf[0] * 100)) / 100
             # Class Name
             cls = int(box.cls[0])
-            currentClass = classNames[cls]  # Fixed the error
+            currentClass = classNames[cls]
 
             # Process only the selected six classes
             if currentClass in allowedClasses and conf > 0.5:
                 if currentClass in {'NO-Hardhat', 'NO-Safety Vest', 'NO-Mask'}:
                     myColor = (0, 0, 255)  # Red for missing safety gear
+                    alert_texts.append(currentClass)  # Add to the alert list
                 else:
                     myColor = (0, 255, 0)  # Green for proper safety gear
 
@@ -48,7 +51,14 @@ while True:
                                    colorT=(255, 255, 255), colorR=myColor, offset=5)
                 cv2.rectangle(img, (x1, y1), (x2, y2), myColor, 3)
 
-    cv2.imshow("Image", img)
+    # Display all violations on the left side of the webcam feed
+    if alert_texts:
+        alert_message = " | ".join(alert_texts)  # Combine all detected issues
+        cvzone.putTextRect(img, f"ALERT: {alert_message}",
+                           (50, 50), scale=2, thickness=2, colorB=(0, 0, 255),
+                           colorT=(255, 255, 255), colorR=(0, 0, 255), offset=10)
+
+    cv2.imshow("PPE Detection", img)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break  # Exit on 'q' key press
 
